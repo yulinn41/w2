@@ -144,7 +144,9 @@
         });
 
         // WebSocket 連接
-        const ws = new WebSocket("ws://localhost:8080");
+        //const ws = new WebSocket("ws://localhost:8080");
+        const unityServerUrl = `wss://${process.env.HEROKU_APP_NAME}.herokuapp.com`;
+        
         ws.onopen = () => {
             console.log("與伺服器連接成功");
             statusText.textContent = "狀態: 準備上傳";
