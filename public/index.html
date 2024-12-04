@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Drawing with Background</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        #toolbar {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .color-button {
+            width: 40px;
+            height: 40px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: transform 0.2s;
+        }
+        .color-button:hover {
+            transform: scale(1.1);
+        }
+        canvas {
+            border: 2px solid #000;
+            background-color: #fff;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Canvas Drawing with Background</h1>
+    <div id="toolbar">
+        <!-- 固定的顏色按鈕 -->
+        <button class="color-button" style="background-color: #000000;" data-color="#000000"></button>
+        <button class="color-button" style="background-color: #FF0000;" data-color="#FF0000"></button>
+        <button class="color-button" style="background-color: #00FF00;" data-color="#00FF00"></button>
+        <button class="color-button" style="background-color: #0000FF;" data-color="#0000FF"></button>
+        <button class="color-button" style="background-color: #FFFF00;" data-color="#FFFF00"></button>
+        <button class="color-button" style="background-color: #FF00FF;" data-color="#FF00FF"></button>
+        <button class="color-button" style="background-color: #00FFFF;" data-color="#00FFFF"></button>
+        <button class="color-button" style="background-color: #808080;" data-color="#808080"></button>
+    </div>
+    <canvas id="myCanvas" width="600" height="400"></canvas>
+    <button id="upload">上傳圖片</button>
+    <p id="status">狀態: 等待上傳...</p>
+
+    <script>
+        const canvas = document.getElementById("myCanvas");
+        const ctx = canvas.getContext("2d");
+        const uploadButton = document.getElementById("upload");
+        const statusText = document.getElementById("status");
+        let currentColor = "#000000"; // 預設顏色
+        let isDrawing = false;
+        let lastX = 0, lastY = 0;
+
+        // 背景圖片加載
+        const backgroundImage = new Image();
+        backgroundImage.crossOrigin = "anonymous"; // 確保跨域安全
+        backgroundImage.src = "bg.png"; // 替換為線稿圖片路徑
+
+        backgroundImage.onload = () => {
+            ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+            console.log("背景圖片已加載");
+        };
+
+        backgroundImage.onerror = () => {
+            statusText.textContent = "狀態: 背景圖片加載失敗！";
+            console.error("無法加載背景圖片，請檢查路徑或伺服器配置");
+        };
+
+        // 繪圖功能
+        canvas.addEventListener("mousedown", (e) => {
+            isDrawing = true;
+            [lastX, lastY] = [e.offsetX, e.offsetY]; // 記錄起點
+        });
+
+        canvas.addEventListener("mousemove", (e) => {
+            if (!isDrawing) return;
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY); // 起點
+            ctx.lineTo(e.offsetX, e.offsetY); // 終點
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = 10;
+            ctx.lineCap = "round";
+            ctx.stroke();
+            [lastX, lastY] = [e.offsetX, e.offsetY]; // 更新起點
+        });
+
+        canvas.addEventListener("mouseup", () => isDrawing = false);
+        canvas.addEventListener("mouseout", () => isDrawing = false);
+
+        // 確保背景圖片始終在下層
+        ctx.globalCompositeOperation = 'destination-over';
+
+        // 顏色選擇功能
+        document.querySelectorAll(".color-button").forEach(button => {
+            button.addEventListener("click", () => {
+                currentColor = button.getAttribute("data-color"); // 獲取按鈕的顏色值
+            });
+        });
+
+        // 上傳功能
+        uploadButton.addEventListener("click", () => {
+            if (!backgroundImage.complete || backgroundImage.naturalWidth === 0) {
+                alert("背景圖片未正確加載，無法上傳！");
+                return;
+            }
+
+            if (ws.readyState === WebSocket.OPEN) {
+                const imageData = canvas.toDataURL("image/png");
+                ws.send(imageData);
+                statusText.textContent = "狀態: 上傳成功！";
+                alert("圖片已上傳！");
+            } else {
+                statusText.textContent = "狀態: 無法上傳，伺服器未連接";
+                alert("上傳失敗，請檢查伺服器連接！");
+            }
+        });
+
+        // WebSocket 連接
+        const ws = new WebSocket("ws://localhost:8080");
+        ws.onopen = () => {
+            console.log("與伺服器連接成功");
+            statusText.textContent = "狀態: 準備上傳";
+        };
+        ws.onclose = () => {
+            console.log("與伺服器連接已斷開");
+            statusText.textContent = "狀態: 無法連接到伺服器";
+        };
+    </script>
+</body>
+</html>
